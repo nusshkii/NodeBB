@@ -22,17 +22,21 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const webserver = __importStar(require("../webserver"));
 const plugins = __importStar(require("../plugins"));
 const groups = __importStar(require("../groups"));
 const index = __importStar(require("./index"));
+const promisify_1 = __importDefault(require("../promisify"));
 async function renderAdminTemplate() {
     // The next line calls a function in a module that has not been updated to TS yet
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     const groupsData = await groups.getNonPrivilegeGroups('groups:createtime', 0, -1);
     groupsData.sort((a, b) => (b.system ? 1 : 0) - (a.system ? 1 : 0));
-    // Suppress ESLint warnings about unsafe access
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     return await webserver.app.renderAsync('admin/partials/widget-settings', { groups: groupsData });
 }
 async function getAvailableWidgets() {
@@ -40,13 +44,34 @@ async function getAvailableWidgets() {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     const [widgets, adminTemplate] = await Promise.all([
         plugins.hooks.fire('filter:widgets.getWidgets', []),
-        renderAdminTemplate()
+        renderAdminTemplate(),
     ]);
     const availableWidgets = widgets.map((w) => {
         w.content += adminTemplate;
         return w;
     });
     return availableWidgets;
+}
+function buildTemplatesFromAreas(areas) {
+    const templates = [];
+    const list = {};
+    let index = 0;
+    areas.forEach((area) => {
+        if (typeof list[area.template] === 'undefined') {
+            list[area.template] = index;
+            templates.push({
+                template: area.template,
+                areas: [],
+            });
+            index += 1;
+        }
+        templates[list[area.template]].areas.push({
+            name: area.name,
+            location: area.location,
+            template: '',
+        });
+    });
+    return templates;
 }
 const admin = {
     get: async function () {
@@ -68,10 +93,12 @@ const admin = {
             { name: 'Group Page (Left)', template: 'groups/details.tpl', location: 'left' },
             { name: 'Group Page (Right)', template: 'groups/details.tpl', location: 'right' },
         ];
-        // Suppress ESLint warnings about unsafe access
+        // The next line calls a function in a module that has not been updated to TS yet
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
         const areas = await plugins.hooks.fire('filter:widgets.getAreas', defaultAreas);
         areas.push({ name: 'Draft Zone', template: 'global', location: 'drafts' });
-        // Suppress ESLint warnings about unsafe access
+        // The next line calls a function in a module that has not been updated to TS yet
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
         const areaData = await Promise.all(areas.map(async (area) => await index.getArea(area.template, area.location)));
         areas.forEach((area, i) => {
             area.data = areaData[i];
@@ -79,24 +106,4 @@ const admin = {
         return areas;
     },
 };
-function buildTemplatesFromAreas(areas) {
-    const templates = [];
-    const list = {};
-    let index = 0;
-    areas.forEach((area) => {
-        if (typeof list[area.template] === 'undefined') {
-            list[area.template] = index;
-            templates.push({
-                template: area.template,
-                areas: [],
-            });
-            index += 1;
-        }
-        templates[list[area.template]].areas.push({
-            name: area.name,
-            location: area.location,
-        });
-    });
-    return templates;
-}
-require('../promisify')(admin);
+(0, promisify_1.default)(admin);
