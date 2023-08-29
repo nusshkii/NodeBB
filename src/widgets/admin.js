@@ -22,24 +22,25 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const webserver = __importStar(require("../webserver"));
 const plugins = __importStar(require("../plugins"));
 const groups = __importStar(require("../groups"));
 const index = __importStar(require("./index"));
-const admin = {};
-admin.get = function () {
-    return __awaiter(this, void 0, void 0, function* () {
-        const [areas, availableWidgets] = yield Promise.all([
+async function getAvailableWidgets() {
+    const [widgets, adminTemplate] = await Promise.all([
+        plugins.hooks.fire('filter:widgets.getWidgets', []),
+        renderAdminTemplate(),
+    ]);
+    const availableWidgets = widgets.map((w) => {
+        w.content += adminTemplate;
+        return w;
+    });
+    return availableWidgets;
+}
+const admin = {
+    get: async function () {
+        const [areas, availableWidgets] = await Promise.all([
             admin.getAreas(),
             getAvailableWidgets(),
         ]);
@@ -48,10 +49,8 @@ admin.get = function () {
             areas: areas,
             availableWidgets: availableWidgets,
         };
-    });
-};
-admin.getAreas = function () {
-    return __awaiter(this, void 0, void 0, function* () {
+    },
+    getAreas: async function () {
         const defaultAreas = [
             { name: 'Global Sidebar', template: 'global', location: 'sidebar' },
             { name: 'Global Header', template: 'global', location: 'header' },
@@ -59,33 +58,23 @@ admin.getAreas = function () {
             { name: 'Group Page (Left)', template: 'groups/details.tpl', location: 'left' },
             { name: 'Group Page (Right)', template: 'groups/details.tpl', location: 'right' },
         ];
-        const areas = yield plugins.hooks.fire('filter:widgets.getAreas', defaultAreas);
+        // Suppress ESLint warnings about unsafe access
+        const areas = await plugins.hooks.fire('filter:widgets.getAreas', defaultAreas);
         areas.push({ name: 'Draft Zone', template: 'global', location: 'drafts' });
-        const areaData = yield Promise.all(areas.map((area) => __awaiter(this, void 0, void 0, function* () { return yield index.getArea(area.template, area.location); })));
+        // Suppress ESLint warnings about unsafe access
+        const areaData = await Promise.all(areas.map(async (area) => await index.getArea(area.template, area.location)));
         areas.forEach((area, i) => {
             area.data = areaData[i];
         });
         return areas;
-    });
+    },
 };
-function getAvailableWidgets() {
-    return __awaiter(this, void 0, void 0, function* () {
-        const [availableWidgets, adminTemplate] = yield Promise.all([
-            plugins.hooks.fire('filter:widgets.getWidgets', []),
-            renderAdminTemplate(),
-        ]);
-        availableWidgets.forEach((w) => {
-            w.content += adminTemplate;
-        });
-        return availableWidgets;
-    });
-}
-function renderAdminTemplate() {
-    return __awaiter(this, void 0, void 0, function* () {
-        const groupsData = yield groups.getNonPrivilegeGroups('groups:createtime', 0, -1);
-        groupsData.sort((a, b) => (b.system ? 1 : 0) - (a.system ? 1 : 0));
-        return yield webserver.app.renderAsync('admin/partials/widget-settings', { groups: groupsData });
-    });
+async function renderAdminTemplate() {
+    // Suppress ESLint warnings about unsafe access
+    const groupsData = await groups.getNonPrivilegeGroups('groups:createtime', 0, -1);
+    groupsData.sort((a, b) => (b.system ? 1 : 0) - (a.system ? 1 : 0));
+    // Suppress ESLint warnings about unsafe access
+    return await webserver.app.renderAsync('admin/partials/widget-settings', { groups: groupsData });
 }
 function buildTemplatesFromAreas(areas) {
     const templates = [];
