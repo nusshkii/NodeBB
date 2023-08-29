@@ -27,10 +27,20 @@ const webserver = __importStar(require("../webserver"));
 const plugins = __importStar(require("../plugins"));
 const groups = __importStar(require("../groups"));
 const index = __importStar(require("./index"));
+async function renderAdminTemplate() {
+    // The next line calls a function in a module that has not been updated to TS yet
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+    const groupsData = await groups.getNonPrivilegeGroups('groups:createtime', 0, -1);
+    groupsData.sort((a, b) => (b.system ? 1 : 0) - (a.system ? 1 : 0));
+    // Suppress ESLint warnings about unsafe access
+    return await webserver.app.renderAsync('admin/partials/widget-settings', { groups: groupsData });
+}
 async function getAvailableWidgets() {
+    // The next line calls a function in a module that has not been updated to TS yet
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     const [widgets, adminTemplate] = await Promise.all([
         plugins.hooks.fire('filter:widgets.getWidgets', []),
-        renderAdminTemplate(),
+        renderAdminTemplate()
     ]);
     const availableWidgets = widgets.map((w) => {
         w.content += adminTemplate;
@@ -69,13 +79,6 @@ const admin = {
         return areas;
     },
 };
-async function renderAdminTemplate() {
-    // Suppress ESLint warnings about unsafe access
-    const groupsData = await groups.getNonPrivilegeGroups('groups:createtime', 0, -1);
-    groupsData.sort((a, b) => (b.system ? 1 : 0) - (a.system ? 1 : 0));
-    // Suppress ESLint warnings about unsafe access
-    return await webserver.app.renderAsync('admin/partials/widget-settings', { groups: groupsData });
-}
 function buildTemplatesFromAreas(areas) {
     const templates = [];
     const list = {};
