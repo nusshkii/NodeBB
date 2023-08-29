@@ -4,8 +4,6 @@ import * as groups from '../groups';
 import * as index from './index';
 import promisifyModule from '../promisify';
 
-
-
 interface Area {
     name: string;
     template: string;
@@ -86,7 +84,7 @@ function buildTemplatesFromAreas(areas: Area[]): Template[] {
 }
 
 const admin: Admin = {
-    get: async function (): Promise<any> {
+    get: async function (): Promise<unknown> {
         const [areas, availableWidgets] = await Promise.all([
             admin.getAreas(),
             getAvailableWidgets(),
@@ -115,9 +113,9 @@ const admin: Admin = {
 
         // The next line calls a function in a module that has not been updated to TS yet
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-        const areaData: any[] = await Promise.all(
-            areas.map(async (area) => await index.getArea(area.template, area.location))
-        );
+        const areaData: Area[] = await Promise.all(
+            areas.map(async area => await index.getArea(area.template, area.location))
+        ) as Area[];
 
         areas.forEach((area, i) => {
             area.data = areaData[i];
@@ -126,4 +124,5 @@ const admin: Admin = {
         return areas;
     },
 };
+
 promisifyModule(admin);
