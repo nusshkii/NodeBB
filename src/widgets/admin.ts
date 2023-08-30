@@ -1,7 +1,7 @@
-import * as webserver from '../webserver';
-import * as plugins from '../plugins';
-import * as groups from '../groups';
-import * as index from './index';
+import webserver from '../webserver';
+import plugins from '../plugins';
+import groups from '../groups';
+import index from './index';
 import promisifyModule from '../promisify';
 
 interface Area {
@@ -110,10 +110,9 @@ const admin: Admin = {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
         const areas: Area[] = await plugins.hooks.fire('filter:widgets.getAreas', defaultAreas) as Area[];
         areas.push({ name: 'Draft Zone', template: 'global', location: 'drafts' });
-
-        // The next line calls a function in a module that has not been updated to TS yet
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
         const areaData: Area[] = await Promise.all(
+            // The next line calls a function in a module that has not been updated to TS yet
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
             areas.map(async area => await index.getArea(area.template, area.location))
         ) as Area[];
 
@@ -123,6 +122,5 @@ const admin: Admin = {
 
         return areas;
     },
-};
-
+};  
 promisifyModule(admin);
